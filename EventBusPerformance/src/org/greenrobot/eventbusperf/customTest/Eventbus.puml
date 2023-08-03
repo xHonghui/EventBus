@@ -1,0 +1,97 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant EventBus
+'Map<Class<?>, CopyOnWriteArrayList<Subscription>> 类型，存储事件类型的所有订阅者
+participant subscriptionsByEventType
+'Map<Object, List<Class<?>>> 类型，存储 订阅者-订阅的事件类型集合 的数据
+participant typesBySubscriber
+'Map<Class<?>, Object> 类型，存储 事件类型-事件对象 的数据
+participant stickyEvents
+'负责通过反射、EventBusIndex(索引)获取订阅者的订阅方法
+participant SubscriberMethodFinder
+'Map<Class<?>, List<SubscriberMethod>> 类型，存储订阅者所有的订阅方法
+participant METHOD_CACHE
+
+
+|||
+== "注册流程" ==
+EventBus -> EventBus: register(event:Any) 注册
+activate EventBus
+EventBus -> SubscriberMethodFinder: findSubscriberMethods(subscriberClass: Class) 获取订阅者所有订阅方法
+activate SubscriberMethodFinder
+SubscriberMethodFinder -> METHOD_CACHE: get(subscriberClass) 从缓存中获取
+activate METHOD_CACHE
+METHOD_CACHE --> SubscriberMethodFinder: 缓存
+deactivate METHOD_CACHE
+activate SubscriberMethodFinder
+SubscriberMethodFinder --> EventBus: 返回该订阅者所有订阅方法
+deactivate SubscriberMethodFinder
+deactivate SubscriberMethodFinder
+EventBus -> EventBus: subscribe()遍历所有订阅方法，通过不同事件类型，添加到不同的事件集合中
+
+activate EventBus
+EventBus -> subscriptionsByEventType: get(eventType: Event) 获取同类型事件集合
+activate subscriptionsByEventType
+subscriptionsByEventType --> EventBus: 返回事件集合
+deactivate subscriptionsByEventType
+EventBus -> EventBus: add(subscription: Subscription) 将当前事件添加到事件集合中
+activate EventBus
+deactivate EventBus
+deactivate EventBus
+
+EventBus -> stickyEvents: 如果当前事件是sticky，则遍历 stickyEvents 集合
+activate stickyEvents
+stickyEvents --> EventBus: 返回单个 sticky 事件
+deactivate stickyEvents
+EventBus -> EventBus: checkPostStickyEventToSubscription(newSubscription, stickyEvent) 发布 sticky 事件
+activate EventBus
+EventBus -> EventBus: postToSubscription(newSubscription, stickyEvent, isMainThread()) 发布事件
+activate EventBus
+deactivate EventBus
+deactivate EventBus
+deactivate EventBus
+
+
+|||
+== 解注册流程 ==
+EventBus -> EventBus: unRegister() 解注册
+activate EventBus
+EventBus -> typesBySubscriber: get(subscriber)获取订阅者所有的订阅方法的事件类型的集合（EventType）
+typesBySubscriber --> EventBus: 返回该订阅者所有订阅方法的事件类型的集合
+|||
+EventBus -> EventBus: unsubscribeByEventType(subscriber)
+activate EventBus
+EventBus -> subscriptionsByEventType: get(eventType) 根据事件类型，获取该事件的所有订阅者集合
+subscriptionsByEventType --> EventBus: 返回所有订阅者集合
+EventBus -> EventBus: 遍历订阅者集合，将当前订阅者的订阅内容从集合中移除
+activate EventBus
+deactivate EventBus
+deactivate EventBus
+EventBus -> typesBySubscriber: remove(subscriber) 移除当前订阅者所有的订阅方法的事件类型的集合
+activate typesBySubscriber
+deactivate typesBySubscriber
+deactivate EventBus
+
+
+|||
+== 发布流程 ==
+EventBus -> EventBus: post(event:Any) 发布事件
+activate EventBus
+EventBus -> EventBus: postSingleEvent()
+activate EventBus
+EventBus -> EventBus: postSingleEventForEventType()
+activate EventBus
+EventBus -> EventBus: postToSubscription() 根据不同的 ModeThread 在不同线程执行订阅方法
+activate EventBus
+deactivate EventBus
+deactivate EventBus
+deactivate EventBus
+deactivate EventBus
+
+
+
+
+
+
+@enduml

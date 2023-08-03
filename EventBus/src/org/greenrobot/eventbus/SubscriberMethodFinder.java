@@ -36,6 +36,10 @@ class SubscriberMethodFinder {
     private static final int SYNTHETIC = 0x1000;
 
     private static final int MODIFIERS_IGNORE = Modifier.ABSTRACT | Modifier.STATIC | BRIDGE | SYNTHETIC;
+
+    /**
+     * 存储订阅者的订阅方法
+     * */
     private static final Map<Class<?>, List<SubscriberMethod>> METHOD_CACHE = new ConcurrentHashMap<>();
 
     private List<SubscriberInfoIndex> subscriberInfoIndexes;
@@ -52,15 +56,20 @@ class SubscriberMethodFinder {
         this.ignoreGeneratedIndex = ignoreGeneratedIndex;
     }
 
+    /**
+     * 通过订阅者获取所有注册的方法
+     * */
     List<SubscriberMethod> findSubscriberMethods(Class<?> subscriberClass) {
         List<SubscriberMethod> subscriberMethods = METHOD_CACHE.get(subscriberClass);
         if (subscriberMethods != null) {
             return subscriberMethods;
         }
-
+        //ignoreGeneratedIndex: true 强制使用反射获取订阅方法，false 使用有限使用索引，没有索引才使用反射
         if (ignoreGeneratedIndex) {
+            //反射获取订阅方法
             subscriberMethods = findUsingReflection(subscriberClass);
         } else {
+            //使用生成的索引获取订阅方法
             subscriberMethods = findUsingInfo(subscriberClass);
         }
         if (subscriberMethods.isEmpty()) {
@@ -85,6 +94,7 @@ class SubscriberMethodFinder {
                     }
                 }
             } else {
+                // 通过反射获取所有订阅方法，然后存放于 findState 中
                 findUsingReflectionInSingleClass(findState);
             }
             findState.moveToSuperclass();
@@ -120,12 +130,14 @@ class SubscriberMethodFinder {
     }
 
     private SubscriberInfo getSubscriberInfo(FindState findState) {
+        //默认情况下，findState.subscriberInfo==null
         if (findState.subscriberInfo != null && findState.subscriberInfo.getSuperSubscriberInfo() != null) {
             SubscriberInfo superclassInfo = findState.subscriberInfo.getSuperSubscriberInfo();
             if (findState.clazz == superclassInfo.getSubscriberClass()) {
                 return superclassInfo;
             }
         }
+        //默认情况下，subscriberInfoIndexes==null
         if (subscriberInfoIndexes != null) {
             for (SubscriberInfoIndex index : subscriberInfoIndexes) {
                 SubscriberInfo info = index.getSubscriberInfo(findState.clazz);
@@ -137,10 +149,14 @@ class SubscriberMethodFinder {
         return null;
     }
 
+    /**
+     * 通过反射获取订阅事件
+     * */
     private List<SubscriberMethod> findUsingReflection(Class<?> subscriberClass) {
         FindState findState = prepareFindState();
         findState.initForSubscriber(subscriberClass);
         while (findState.clazz != null) {
+            //通过反射获取所有订阅方法，然后存放于 findState 中
             findUsingReflectionInSingleClass(findState);
             findState.moveToSuperclass();
         }
@@ -151,6 +167,7 @@ class SubscriberMethodFinder {
         Method[] methods;
         try {
             // This is faster than getMethods, especially when subscribers are fat classes like Activities
+            // 这比 getMethods 更快，特别是当订阅者是像 Activity 这样的胖类时
             methods = findState.clazz.getDeclaredMethods();
         } catch (Throwable th) {
             // Workaround for java.lang.NoClassDefFoundError, see https://github.com/greenrobot/EventBus/issues/149
@@ -263,6 +280,9 @@ class SubscriberMethodFinder {
             }
         }
 
+        /**
+         * 向父类查找
+         * */
         void moveToSuperclass() {
             if (skipSuperClasses) {
                 clazz = null;

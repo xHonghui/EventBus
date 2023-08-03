@@ -54,6 +54,7 @@ import static net.ltgt.gradle.incap.IncrementalAnnotationProcessorType.AGGREGATI
 /**
  * Is an aggregating processor as it writes a single file, the subscriber index file,
  * based on found elements with the @Subscriber annotation.
+ * 是一个聚合处理器，因为它根据带有 @Subscriber 注释的找到的元素写入单个文件（订阅者索引文件）。
  */
 @SupportedAnnotationTypes("org.greenrobot.eventbus.Subscribe")
 @SupportedOptions(value = {"eventBusIndex", "verbose"})

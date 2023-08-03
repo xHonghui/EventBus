@@ -35,6 +35,10 @@ public class EventBusMainThreadTest extends AbstractAndroidEventBusTest {
 
         assertEquals("Hello", lastEvent);
         assertEquals(Looper.getMainLooper().getThread(), lastThread);
+
+        EventBus.getDefault().register();
+        EventBus.getDefault().unregister();
+        EventBus.getDefault().postSticky();
     }
 
     @Test

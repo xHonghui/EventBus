@@ -20,6 +20,9 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
 
+/**
+ * 主线程事件队列
+ * */
 public class HandlerPoster extends Handler implements Poster {
 
     private final PendingPostQueue queue;
